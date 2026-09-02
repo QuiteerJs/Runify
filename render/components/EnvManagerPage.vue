@@ -89,6 +89,8 @@ interface ManagerMeta {
   requiresNode?: boolean
   /** 官方推荐的工具，卡片上挂「推荐」标签 */
   recommended?: boolean
+  /** 升级命令；null = 不开放升级入口（nvm 之类只能重装，自带脚本对老用户更稳定） */
+  upgradeCommand: string | null
 }
 const MANAGERS: ManagerMeta[] = [
   {
@@ -103,6 +105,7 @@ const MANAGERS: ManagerMeta[] = [
     uninstall: 'rm -rf "$HOME/.vite-plus"',
     uninstallNote: '安装脚本可能已在 ~/.zshrc / ~/.bashrc 写入初始化行，卸载后请手动移除',
     recommended: true,
+    upgradeCommand: 'vp upgrade 2>/dev/null || curl -fsSL https://vite.plus | bash',
   },
   {
     id: 'nvm',
@@ -115,6 +118,9 @@ const MANAGERS: ManagerMeta[] = [
     setDefault: 'nvm alias default {v}',
     uninstall: 'rm -rf "$HOME/.nvm"',
     uninstallNote: '请同时移除 shell 配置文件里的 nvm 初始化行',
+    // nvm 没有可靠的 self-update 子命令：旧 install.sh 会写新位置（HOME 外的 $NVM_DIR），
+    // 会出 INSTALL_ERROR。官方建议卸载重装，故此处不暴露一键升级。
+    upgradeCommand: null,
   },
   {
     id: 'fnm',
@@ -127,6 +133,7 @@ const MANAGERS: ManagerMeta[] = [
     setDefault: 'fnm default {v}',
     uninstall: 'rm -rf "$HOME/.fnm"',
     uninstallNote: '若是 Homebrew 安装，请改用 brew uninstall fnm',
+    upgradeCommand: 'fnm self-update 2>/dev/null || curl -fsSL https://fnm.vercel.app/install | bash',
   },
   {
     id: 'volta',
@@ -139,6 +146,7 @@ const MANAGERS: ManagerMeta[] = [
     setDefault: null,
     uninstall: 'rm -rf "$HOME/.volta"',
     uninstallNote: '请同时移除 shell 配置文件里的 volta 初始化行',
+    upgradeCommand: 'volta install volta 2>/dev/null || curl https://get.volta.sh | bash',
   },
   {
     id: 'n',
@@ -151,6 +159,7 @@ const MANAGERS: ManagerMeta[] = [
     setDefault: null,
     uninstall: 'npm uninstall -g n --force; rm -rf /usr/local/n',
     requiresNode: true,
+    upgradeCommand: 'npm install -g n --force',
   },
   {
     id: 'mise',
@@ -162,6 +171,7 @@ const MANAGERS: ManagerMeta[] = [
     installVersion: 'mise use -g node@{v}',
     setDefault: null,
     uninstall: 'rm -rf "$HOME/.local/share/mise" "$HOME/.config/mise"; rm -f "$HOME/.local/bin/mise"',
+    upgradeCommand: 'mise self-update 2>/dev/null || curl https://mise.run | sh',
   },
   {
     id: 'asdf',
@@ -174,6 +184,7 @@ const MANAGERS: ManagerMeta[] = [
     setDefault: 'asdf global nodejs {v}',
     uninstall: 'rm -rf "$HOME/.asdf"',
     uninstallNote: '请同时移除 shell 配置文件里的 asdf 初始化行',
+    upgradeCommand: 'asdf self-update 2>/dev/null || (cd "$ASDF_DIR" 2>/dev/null || cd "$HOME/.asdf" && git pull origin master && make)',
   },
 ]
 
@@ -487,6 +498,10 @@ function setDefaultManagerVersion(m: ManagerMeta) {
 function quickInstall(m: ManagerMeta) {
   runOp(`安装 ${m.name}`, m.installCommand)
 }
+function upgradeManager(m: ManagerMeta) {
+  if (m.upgradeCommand)
+    runOp(`升级 ${m.name}`, m.upgradeCommand)
+}
 function uninstallManager(m: ManagerMeta) {
   dialog.warning({
     title: `卸载 ${m.name}`,
@@ -761,6 +776,19 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
                   @click="setDefaultManagerVersion(m)"
                 >
                   设为默认
+                </NButton>
+                <NButton
+                  v-if="m.upgradeCommand"
+                  size="small"
+                  secondary
+                  :disabled="running"
+                  :title="m.upgradeCommand"
+                  @click="upgradeManager(m)"
+                >
+                  <template #icon>
+                    <i class="i-carbon-renew" />
+                  </template>
+                  升级工具
                 </NButton>
                 <span
                   v-if="!m.setDefault"
