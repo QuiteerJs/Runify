@@ -109,10 +109,10 @@ const MANAGERS: ManagerMeta[] = [
     icon: 'i-tabler-letter-n',
     desc: '极简风格的 Node 版本管理器（需要已有 npm）',
     homepage: 'https://github.com/tj/n',
-    installCommand: 'npm install -g n',
+    installCommand: 'npm install -g n --force',
     installVersion: 'n {v}',
     setDefault: null,
-    uninstall: 'npm uninstall -g n; rm -rf /usr/local/n',
+    uninstall: 'npm uninstall -g n --force; rm -rf /usr/local/n',
     requiresNode: true,
   },
   {
@@ -160,9 +160,12 @@ const PMS: PmMeta[] = [
     name: 'pnpm',
     icon: 'i-tabler-package',
     desc: '硬链接共享依赖，省磁盘、装得快，monorepo 首选',
-    installCommand: 'npm install -g pnpm',
-    upgradeCommand: 'npm install -g pnpm@latest',
-    uninstall: 'npm uninstall -g pnpm',
+    // --force 用于绕过与 Corepack shim 的 EEXIST：若 bin/pnpm 已被 corepack 占位，
+    // 默认 npm 会拒绝覆盖；--force 会让 npm 先 remove 旧文件再装新的（不影响安全性，仅跳
+    // 过 npm 自身的"已存在"保护）。Corepack 的 shim 会被替换为真正的 pnpm。
+    installCommand: 'npm install -g pnpm --force',
+    upgradeCommand: 'npm install -g pnpm@latest --force',
+    uninstall: 'npm uninstall -g pnpm --force',
     uninstallNote: '若经 Corepack / Vite+ 启用，请改用 corepack disable 关闭',
   },
   {
@@ -170,9 +173,9 @@ const PMS: PmMeta[] = [
     name: 'Yarn',
     icon: 'i-tabler-brand-yarn',
     desc: '经典包管理器（Yarn Classic / Berry）',
-    installCommand: 'npm install -g yarn',
-    upgradeCommand: 'npm install -g yarn@latest',
-    uninstall: 'npm uninstall -g yarn',
+    installCommand: 'npm install -g yarn --force',
+    upgradeCommand: 'npm install -g yarn@latest --force',
+    uninstall: 'npm uninstall -g yarn --force',
   },
   {
     key: 'bun',
@@ -189,9 +192,9 @@ const PMS: PmMeta[] = [
     name: 'Corepack',
     icon: 'i-tabler-box',
     desc: 'Node 官方的包管理器版本管理器，按项目自动切 pnpm/yarn',
-    installCommand: 'corepack enable 2>/dev/null || npm install -g corepack',
+    installCommand: 'corepack enable 2>/dev/null || npm install -g corepack --force',
     upgradeCommand: null,
-    uninstall: 'corepack disable 2>/dev/null; npm uninstall -g corepack',
+    uninstall: 'corepack disable 2>/dev/null; npm uninstall -g corepack --force',
   },
 ]
 
