@@ -335,9 +335,27 @@ const switchEntries = computed<SwitchEntry[]>(() => {
 const activeNodeVersion = computed(() =>
   fmtVer(snapshot.value?.runtimes.find(r => r.key === 'node')?.version ?? null),
 )
+/**
+ * UI 上展示的「当前激活 Node 版本」。
+ * 优先级：vitet 工具的 defaultVersion（用户切换的目标）> PATH 解析实际跑什么
+ *
+ * 为什么这么设计：vitet + 项目级 .node-version 双锁定 场景下，
+ * - runtimes.find('node').version 反映 cwd 下 PATH 中 node 解析出的实际跑什么版本
+ *   （vitet 在 Runify 项目目录会读 .node-version 覆盖 default）
+ * - m.defaultVersion 反映用户最后一次 `vp env default` 切的目标（与 cwd 无关）
+ * 用户点切换卡片，意图是「切换 default」，所以 UI 优先展示意图而不是「实际跑」。
+ */
+const activeNodeDisplay = computed<string | null>(() => {
+  const vitep = snapshot.value?.managers.find(m => m.id === 'vitep')
+  if (vitep?.installed && vitep.defaultVersion)
+    return fmtVer(vitep.defaultVersion)
+  return activeNodeVersion.value
+})
 /** 当前激活版本的管理工具 id（切换时优先用同一个工具切，避免多工具打架） */
 const activeManagerId = computed<EnvManagerId | null>(() => {
-  const active = activeNodeVersion.value
+  // 以 UI 展示的版本为基准去找管理工具，而不是用 PATH 解析出的版本——
+  // 否则 vitep 切了但因为 cwd 锁了 .node-version，UI 永远找不到匹配的管理工具。
+  const active = activeNodeDisplay.value
   if (!active)
     return null
   const m = snapshot.value?.managers.find(
@@ -346,7 +364,9 @@ const activeManagerId = computed<EnvManagerId | null>(() => {
   return m?.id ?? null
 })
 function switchTo(e: SwitchEntry) {
-  if (e.version === activeNodeVersion.value) {
+  // 用 UI 展示版本判断"已是当前"：用户视角是「我已经切到了这个版本就行」，
+  // 不管 cwd 下实际跑的是不是它（哪怕 .node-version 锁定导致 runtimes 版本不同）。
+  if (e.version === activeNodeDisplay.value) {
     message.info('该版本已是当前默认版本')
     return
   }
@@ -623,7 +643,15 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
             </span>
             <span class="text-[13px] text-fg-dim">当前激活</span>
             <span class="text-[16px] font-semibold font-mono tabular-nums">
-              {{ activeNodeVersion === '—' ? '未检测到 Node' : `v${activeNodeVersion}` }}
+              {{ activeNodeDisplay === '—' || activeNodeDisplay === null ? '未检测到 Node' : `v${activeNodeDisplay}` }}
+            </span>
+            <span
+              v-if="activeNodeDisplay && activeNodeDisplay !== activeNodeVersion"
+              class="text-[11px] font-medium px-2 py-0.5 rounded-full text-fg-dim bg-[rgba(128,128,128,0.12)] flex items-center gap-1"
+              :title="`项目级 .node-version 锁定实际 PATH 解析为 v${activeNodeVersion}`"
+            >
+              <i class="i-tabler-link text-[10px]" />
+              项目级: v{{ activeNodeVersion }}
             </span>
             <span
               v-if="activeManagerId"
@@ -638,14 +666,14 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
               :key="e.version"
               type="button"
               class="text-[12px] font-mono px-2.5 py-1 rounded-md border cursor-pointer transition-colors duration-150 flex items-center gap-1"
-              :class="e.version === activeNodeVersion
+              :class="e.version === activeNodeDisplay
                 ? 'text-accent bg-[rgba(52,199,89,0.12)] border-accent/40 font-medium'
                 : 'text-fg-dim bg-bg border-line hover:border-accent/50 hover:text-fg'"
               :title="`切换默认 Node 到 v${e.version}（经 ${e.managers.map(m => m.name).join(' / ')}）`"
               @click="switchTo(e)"
             >
               <i
-                v-if="e.version === activeNodeVersion"
+                v-if="e.version === activeNodeDisplay"
                 class="i-tabler-check text-[12px]"
               />
               v{{ e.version }}
