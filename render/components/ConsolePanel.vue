@@ -50,6 +50,32 @@ function splitByQuery(text: string): TextSeg[] {
 }
 const lineSegments = computed(() => filtered.value.map(l => splitByQuery(l.text)))
 
+/**
+ * 终端日志分级着色：按行内容智能降噪，而不是 stderr 一律标红。
+ * - error：真正的致命错误（npm ERR! / yarn error / pnpm ERR_PNPM_ / 异常堆栈等）→ 红
+ * - warn：npm warn / warning / deprecated 等非致命告警 → 暗黄（降级，不再刺眼）
+ * - success：changed / added / done / ✓ 等成功标记 → 绿
+ * - normal：默认（stderr 但非 error 也归 normal，避免 npm 把 warn 吐到 stderr 时误标红）
+ */
+type LineLevel = 'error' | 'warn' | 'success' | 'normal'
+// 只做明确匹配，避免复杂断言触发 lint 的矛盾正则规则
+const ERROR_RE = /npm ERR!|npm error|ERR_PNPM_|yarn error|TypeError|ReferenceError|SyntaxError|command failed with exit code|exited with code [1-9]|E[A-Z]\w+:/i
+const WARN_RE = /npm warn\b|\bwarn(?:ing)?\b|deprecat/i
+const SUCCESS_RE = /(?:changed|added|updated|removed) \d+ package|installed \d+ package|successfully|compiled successfully|built in|passed|[✓✔✅]/i
+
+function levelOf(l: LogEntry): LineLevel {
+  const text = l.text
+  if (ERROR_RE.test(text))
+    return 'error'
+  if (SUCCESS_RE.test(text))
+    return 'success'
+  if (WARN_RE.test(text))
+    return 'warn'
+  // stderr 但没命中任何明确级别 → 不再一律标红，降级为 normal（关键去噪点）
+  return 'normal'
+}
+const lineLevels = computed(() => filtered.value.map(l => levelOf(l)))
+
 watch(
   () => props.logs.length,
   async () => {
@@ -126,7 +152,11 @@ function fmtTs(ts: number): string {
       <div
         v-for="(l, i) in filtered"
         :key="i"
-        :class="{ 'text-[#ff7b72]': l.stream === 'stderr' }"
+        :class="{
+          'text-[#ff7b72]': lineLevels[i] === 'error',
+          'text-[#d4a72c]': lineLevels[i] === 'warn',
+          'text-[#7ee787]': lineLevels[i] === 'success',
+        }"
       >
         <span class="text-[#6b7280] mr-1.5">{{ fmtTs(l.ts) }}</span>
         <template v-for="(seg, si) in lineSegments[i]" :key="si">

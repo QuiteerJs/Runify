@@ -245,13 +245,18 @@ async function stopOp() {
   message.info('已发送停止信号')
 }
 
-// 操作结束后自动重新探测，刷新版本列表 / 默认版本
-watch(() => runInfo.value?.status, (s, prev) => {
-  if (prev === 'running' && s && s !== 'running') {
-    message[s === 'error' ? 'error' : 'success'](
-      s === 'error' ? `「${currentOp.value}」执行出错` : `「${currentOp.value}」已完成`,
-    )
+// 操作结束后的「自动回写」：监听子进程 exit code，成功（0）才局部刷新 + 成功 Toast，
+// 失败（非 0）只弹错误提示、不刷新（保持旧版本号可见，便于用户排查）。
+watch(() => runInfo.value?.exitCode, (code) => {
+  if (code === null)
+    return
+  if (code === 0) {
+    message.success(`✅ ${currentOp.value} 成功`)
+    // 局部刷新：重新读取版本号并更新 UI 卡片
     setTimeout(detect, 600)
+  }
+  else {
+    message.error(`「${currentOp.value}」执行失败（退出码 ${code}）`)
   }
 })
 
