@@ -57,6 +57,8 @@ export const api = {
     invoke<RunInfo>(IPC.envRunCommand, { command }),
   envNodeVersions: () =>
     invoke<import('../shared/types').NodeDistVersion[]>(IPC.envNodeVersions),
+  envPmLatestVersion: (name: 'pnpm' | 'yarn' | 'bun') =>
+    invoke<string | null>(IPC.envPmLatestVersion, { name }),
   onEvent,
 }
 

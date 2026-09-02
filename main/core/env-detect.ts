@@ -206,3 +206,34 @@ export async function fetchNodeDistVersions(): Promise<NodeDistVersion[]> {
     return []
   }
 }
+
+/** 包管理器最新版（npm 上游 dist-tag latest）的内存缓存 */
+const pmLatestCache = new Map<string, { at: number, version: string }>()
+const PM_LATEST_TTL = 10 * 60 * 1000
+
+/**
+ * 拉取某个包管理器在 npm dist-tag `latest` 上的最新版（无 `v` 前缀的 semver，如 `1.22.22`）。
+ * 供「升级到最新」按钮判断当前版本是否已经等于最新，避免出现"已装到 1.22.22 还显示升级到最新"的语义失效。
+ * 网络失败 / 包不存在（404）返回 null，渲染层降级为永远显示「升级到最新」按钮。
+ * 命中缓存 10 分钟内不会重发请求。
+ *
+ * 注：调用的是用户登录 shell（`-l -i -c`），继承 PATH 以命中用户机器上的 npm。
+ */
+export async function fetchPmLatestVersion(name: 'pnpm' | 'yarn' | 'bun'): Promise<string | null> {
+  const cached = pmLatestCache.get(name)
+  if (cached && Date.now() - cached.at < PM_LATEST_TTL)
+    return cached.version
+  try {
+    // 包名正则 + 限制 semver 形态：防止 npm 输出 banner 噪声污染
+    const out = await probe(`npm view ${name} version 2>/dev/null | head -n 1`)
+    const v = out.trim().match(/\d+\.\d+\.\d+/)
+    if (!v)
+      return null
+    const version = v[0]
+    pmLatestCache.set(name, { at: Date.now(), version })
+    return version
+  }
+  catch {
+    return null
+  }
+}

@@ -15,7 +15,7 @@ import process from 'node:process'
 import { windows } from '@quiteer/electron-browser'
 import { dialog, ipcMain, nativeTheme, shell } from 'electron'
 import { IPC } from '../../shared/types'
-import { detectEnv, fetchNodeDistVersions } from '../core/env-detect'
+import { detectEnv, fetchNodeDistVersions, fetchPmLatestVersion } from '../core/env-detect'
 import { getRun, startAdhocRun, startRun, stopRun } from '../core/runner'
 import {
   buildProject,
@@ -175,6 +175,12 @@ export function registerHandlers(): void {
 
   // 环境管理：官方源可安装的 Node 版本列表（供安装下拉选择）
   ipcMain.handle(IPC.envNodeVersions, () => fetchNodeDistVersions())
+
+  // 环境管理：包管理器（pnpm/yarn/bun）的最新版本，用于「已是最新」按钮态切换
+  ipcMain.handle(
+    IPC.envPmLatestVersion,
+    (_e, payload: { name: 'pnpm' | 'yarn' | 'bun' }) => fetchPmLatestVersion(payload.name),
+  )
 
   ipcMain.handle(IPC.openFolder, async (_e, payload: { path: string }) => {
     shell.showItemInFolder(payload.path)

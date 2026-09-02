@@ -193,6 +193,8 @@ export const IPC = {
   envRunCommand: 'runify:envRunCommand',
   /** 环境管理：官方源可安装的 Node 版本列表（nodejs.org dist index，主进程缓存 1 小时） */
   envNodeVersions: 'runify:envNodeVersions',
+  /** 环境管理：包管理器（pnpm/yarn/bun）在 npm dist-tag latest 上的最新版（主进程缓存 10 分钟） */
+  envPmLatestVersion: 'runify:envPmLatestVersion',
   /** 主进程推送事件的通道 */
   event: 'runify:event',
 } as const

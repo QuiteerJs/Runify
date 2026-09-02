@@ -18,10 +18,35 @@ const projects = useProjects()
 // === 探测 ===
 const snapshot = ref<EnvSnapshot | null>(null)
 const detecting = ref(false)
+/** 各 PMS 当前版本对应「npm dist-tag latest」的缓存，键为 pm.key。仅缓存成功的查到的版本，避免网络失败后残留旧值 */
+const pmLatest = ref<Partial<Record<'pnpm' | 'yarn' | 'bun', string | null>>>({})
+
 async function detect() {
   detecting.value = true
   try {
     snapshot.value = await api.envDetect()
+    // 并行拉每个 PMS（pnpm/yarn/bun）的最新版本，用于升级按钮「已是最新」态切换
+    const keys = ['pnpm', 'yarn', 'bun'] as const
+    const results = await Promise.all(
+      keys.map(async (k) => {
+        try {
+          const v = await api.envPmLatestVersion(k)
+          return [k, v] as const
+        }
+        catch {
+          return [k, null] as const
+        }
+      }),
+    )
+    // 仅当后端明确返回字符串时更新（避免把网络失败的 null 覆盖成 null 仍能展示旧值）
+    const next: Partial<Record<'pnpm' | 'yarn' | 'bun', string | null>> = {}
+    for (const [k, v] of results) {
+      if (v !== null)
+        next[k] = v
+      else if (pmLatest.value[k] !== undefined)
+        next[k] = pmLatest.value[k] // 保留上一轮缓存，避免按钮态抖动
+    }
+    pmLatest.value = next
   }
   catch (e: unknown) {
     message.error(`探测失败：${e instanceof Error ? e.message : String(e)}`)
@@ -29,6 +54,18 @@ async function detect() {
   finally {
     detecting.value = false
   }
+}
+
+/** 比较当前版本与 PMS 卡片的 latest tag：去前缀 v 后比较 semver。
+ *  返回 true 表示「当前已是最新」，按钮切换到「已是最新」态。 */
+function isUpToDate(pm: PmMeta): boolean {
+  if (pm.key === 'corepack')
+    return false
+  const installed = runtimeOf(pm.key)?.version
+  const latest = pmLatest.value[pm.key as 'pnpm' | 'yarn' | 'bun']
+  if (!installed || !latest)
+    return false
+  return fmtVer(installed) === latest
 }
 
 // === 工具配置（命令模板里的 {v} 会替换为版本号） ===
@@ -814,14 +851,24 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
             <div class="text-[11.5px] text-fg-dim leading-snug">
               {{ pm.desc }}
             </div>
-            <!-- 已安装：升级 -->
+            <!-- 已安装：升级 / 已是最新 -->
             <div v-if="runtimeOf(pm.key)?.version && pm.upgradeCommand" class="flex items-center gap-2">
-              <NButton size="small" secondary :disabled="running" @click="upgradePm(pm)">
-                <template #icon>
-                  <i class="i-carbon-renew" />
-                </template>
-                升级到最新
-              </NButton>
+              <template v-if="isUpToDate(pm)">
+                <NButton size="small" secondary disabled :title="`已是最新版本 v${pmLatest[pm.key]}，无需升级`">
+                  <template #icon>
+                    <i class="i-tabler-check text-accent" />
+                  </template>
+                  已是最新 v{{ pmLatest[pm.key] }}
+                </NButton>
+              </template>
+              <template v-else>
+                <NButton size="small" secondary :disabled="running" @click="upgradePm(pm)">
+                  <template #icon>
+                    <i class="i-carbon-renew" />
+                  </template>
+                  升级到最新
+                </NButton>
+              </template>
               <code class="text-[11px] font-mono text-fg-dim/70 truncate" :title="pm.upgradeCommand ?? ''">{{ pm.upgradeCommand }}</code>
             </div>
             <!-- 未安装：快捷安装 -->
