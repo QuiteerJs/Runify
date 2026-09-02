@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runify</title>
+    <script>
+      // 首帧防闪烁：必须在 Vue 挂载前（同步）定好明暗。
+      //
+      // 权威档位存在主进程的 runify-settings.json，但读取要过异步 IPC，等不及首帧；
+      // 这里改用 useTheme 每次切换时顺手写入的 localStorage 镜像做同步预测。
+      // 加载完成后 useTheme.init() 会用真实值校正 —— 正常情况下两者一致，不会有可见跳变。
+      ;(function () {
+        try {
+          var cached = localStorage.getItem('runify:theme-cache')
+          var dark = cached ? cached === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+          var el = document.documentElement
+          el.classList.add(dark ? 'theme-dark' : 'theme-light')
+          el.dataset.theme = dark ? 'dark' : 'light'
+          // color-scheme 让原生滚动条 / 表单控件跟随，避免深色主题下露出白条
+          el.style.colorScheme = dark ? 'dark' : 'light'
+          el.style.backgroundColor = dark ? '#16171a' : '#f3f4f6'
+        } catch (e) {
+          // 取不到就交给 useTheme.init() 兜底，最差沿用 style.css 的默认深色
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

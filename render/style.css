@@ -1,0 +1,129 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 全局滚动条（伪元素无法用 UnoCSS 工具类表达，保留为基座层） */
+::-webkit-scrollbar {
+  width: 10px; /* 高宽分别对应横竖滚动条的尺寸 */
+}
+::-webkit-scrollbar-track {
+  border-radius: 2px;
+  background: var(--bg-elevated, #1f222a);
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  border-style: dashed;
+  border-color: transparent;
+  border-width: 4px;
+  background-color: rgba(157, 165, 183, 0.4);
+  background-clip: padding-box;
+  transition: 0.6s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 165, 183, 0.7);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+}
+
+/* 主题变量：被 uno.config.ts 的 theme.colors 引用（bg-bg / text-fg 等工具类）。
+   必须挂在 <html>（:root）上，不能只挂在 #app 内的容器上 ——
+   NaiveUI 的 popover / modal / dropdown 等浮层会 teleport 到 body 下，
+   脱离了容器作用域后拿不到变量，会解析成 transparent（浮层背景透底）。
+
+   档位的唯一维护者是 useTheme（render/composables/useTheme.ts），
+   它同时写 data-theme / class / color-scheme 到 <html>；
+   启动首帧则由 index.html 的内联脚本按 localStorage 镜像预写，避免闪烁。
+   无 data-theme 时（内联脚本与 useTheme 都没跑到）回退到深色。 */
+:root,
+:root[data-theme='dark'],
+:root.theme-dark {
+  /* color-scheme 让原生滚动条、表单控件、日期选择器等跟随主题，
+     否则深色界面上会露出一截白色滚动条 */
+  color-scheme: dark;
+  --bg: #16171a;
+  --bg-elevated: #1f2125;
+  --bg-card: #232529;
+  --border: #2e3035;
+  --text: #e8e8ea;
+  --text-dim: #9a9ca3;
+  --accent: #34c759;
+}
+
+:root[data-theme='light'],
+:root.theme-light {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border: #e2e5ea;
+  --text: #1f2329;
+  --text-dim: #6b7280;
+  --accent: #1a9c43;
+}
+
+/* 侧栏项目列表：上下各 10px 线性淡出，滚动进出时不与标题行 / 账户条硬碰硬。
+   纯 CSS mask，无 JS，不影响滚动与点击命中。 */
+.sidebar__group-list {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+
+/* 侧栏项目列表：窄容器里用细滚动条，避免 10px 宽条挤压 280px 的侧栏 */
+.sidebar__group-list::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar__group-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar__group-list::-webkit-scrollbar-thumb {
+  border-width: 2px;
+  border-radius: 3px;
+}
+
+/* 账户菜单浮层：NPopover 以 raw 渲染并 teleport 到 <body>，
+   容器自身不带任何样式，这里直接给容器兜底，避免变量未注入时与下层界面重叠透底 */
+.user-menu-popover {
+  background: var(--bg-elevated, #1f2125);
+  color: var(--text, #e8e8ea);
+  border: 1px solid var(--border, #2e3035);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
+  overflow: hidden;
+}
+
+/* 拖拽高亮：shortcut 无法表达「.runify-body.is-dragover」组合选择器，保留全局规则 */
+.runify-body.is-dragover {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+  background: rgba(52, 199, 89, 0.05);
+}
+
+/* 卡片运行进度扫光动画：被 runify-card__progress 的 after:animate 引用 */
+@keyframes runify-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}

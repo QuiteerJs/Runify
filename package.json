@@ -1,0 +1,69 @@
+{
+  "name": "runify",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "本地前端工程统一运行器：导入即识别类型与脚本，一键运行、编排与查看日志",
+  "author": "Quiteer",
+  "main": "dist/resource/electron.mjs",
+  "scripts": {
+    "dev": "electronup",
+    "build": "electronup build",
+    "build:dir": "electronup build --dir",
+    "build:win": "electronup build --win",
+    "build:win32": "electronup build --win ia32",
+    "build:win64": "electronup build --win x64",
+    "build:mac": "electronup build --mac",
+    "build:mac-x64": "electronup build --mac x64",
+    "build:mac-arm64": "electronup build --mac arm64",
+    "build:mac-universal": "electronup build --mac universal",
+    "build:linux": "electronup build --linux",
+    "build:option": "electronup build -o",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "simple-git-hooks",
+    "upgrade:latest": "pnpm update --latest",
+    "upgrade:interactive": "pnpm update --interactive --latest",
+    "commit": "qui gc"
+  },
+  "dependencies": {
+    "@quiteer/electron-browser": "^0.0.1",
+    "@quiteer/electron-ipc": "^2.0.4",
+    "@quiteer/electron-menu": "^0.0.2",
+    "@quiteer/electron-preload": "^0.0.10",
+    "@quiteer/electron-tray": "^0.0.1",
+    "naive-ui": "^2.40.1",
+    "pinia": "^2.3.1",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^7.6.1",
+    "@iconify-json/carbon": "^1.2.26",
+    "@iconify-json/lucide": "^1.2.128",
+    "@iconify-json/tabler": "^1.2.38",
+    "@quiteer/scripts": "^0.1.6",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "electronup": "^0.2.5",
+    "eslint": "^10.0.2",
+    "eslint-plugin-format": "^2.0.1",
+    "lint-staged": "^16.2.7",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "~5.9.3",
+    "unocss": "^66.8.1"
+  },
+  "pnpm": {
+    "overrides": {},
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "simple-git-hooks"
+    ]
+  },
+  "simple-git-hooks": {
+    "commit-msg": "pnpm qui gv",
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}
