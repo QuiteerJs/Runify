@@ -624,6 +624,16 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
               class="text-[13px] tabular-nums"
               :class="r.version ? 'font-medium' : 'text-fg-dim/70'"
             >{{ r.version ? fmtVer(r.version) : '未安装' }}</span>
+            <!-- 仅 node 这格有「PATH 实际 vs 用户意图」的副标：vitep + .node-version 等场景下，
+            PATH 解析会被 cwd 锁定 .node-version/.nvmrc 拉偏，UI 真相就是「PATH 实际跑的」，
+            与「用户上一次默认」的差距就是 .node-version 锁的项目级。 -->
+            <span
+              v-if="r.key === 'node' && r.version && activeNodeDisplay && fmtVer(r.version) !== activeNodeDisplay"
+              class="text-[10.5px] text-fg-dim/70 leading-tight"
+              :title="`被项目级 .node-version / .nvmrc 等 cwd 锁定文件覆盖，实际 PATH 解析为 v${fmtVer(r.version)}`"
+            >
+              default: v{{ activeNodeDisplay }}
+            </span>
           </div>
           <div v-if="!snapshot && detecting" class="col-span-6 text-[12.5px] text-fg-dim py-3">
             正在探测本机环境…
