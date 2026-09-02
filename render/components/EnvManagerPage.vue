@@ -305,7 +305,11 @@ function switchTo(e: SwitchEntry) {
 // === 版本管理工具操作 ===
 const versionSel = ref<Record<string, string | null>>({})
 
-// === 版本下拉：懒加载（首次展开才拉取）+ 模糊搜索 + 滚动增量渲染 ===
+// === 版本下拉：远程拉取官方版本列表 + 模糊搜索 ===
+// 注：选项不再做滚动增量。原因：n-select 内部默认 resetMenuOnOptionsChange=true，
+// options 数组引用变化会触发其 treeMate watcher 调用 scrollToPendingNode()，
+// 把滚动条强行归位到 pending 项（用户尚未选过时 = 第一项）。改用 NSelect 自带的虚拟滚动
+// + 加 :reset-menu-on-options-change="false" 双保险，整列铺开放进去。
 const remoteVersions = ref<NodeDistVersion[]>([])
 const remoteLoading = ref(false)
 const remoteLoaded = ref(false)
@@ -330,27 +334,18 @@ async function ensureRemoteVersions() {
   }
 }
 
-const VERSION_PAGE = 60
 const versionSearch = ref('')
-const versionLimit = ref(VERSION_PAGE)
 
+/** 下拉展开时清空搜索、并触发首次远程拉取 */
 function onVersionDropdown(show: boolean) {
   if (!show)
     return
   versionSearch.value = ''
-  versionLimit.value = VERSION_PAGE
   ensureRemoteVersions()
 }
 
 function onVersionSearch(q: string) {
   versionSearch.value = q
-  versionLimit.value = VERSION_PAGE
-}
-
-function onVersionScroll(e: Event) {
-  const el = e.target as HTMLElement
-  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 32)
-    versionLimit.value += VERSION_PAGE
 }
 
 /** 模糊匹配：子串直接命中，或字符子序列（如 "2214" 命中 "22.14.0"，"lts" 命中所有 LTS） */
@@ -405,7 +400,7 @@ function versionOptions(id: EnvManagerId): SelectOption[] {
   let matched = versionCandidates(id)
   if (q)
     matched = matched.filter(c => fuzzyMatch(q, c.searchText))
-  const opts: SelectOption[] = matched.slice(0, versionLimit.value).map(c => ({
+  const opts: SelectOption[] = matched.map(c => ({
     label: c.label,
     value: c.version,
   }))
@@ -413,8 +408,8 @@ function versionOptions(id: EnvManagerId): SelectOption[] {
     opts.push({ label: '在线版本列表拉取失败，仅显示已安装版本（可手动输入版本号）', disabled: true })
   else if (q && opts.length === 0 && !remoteLoading.value)
     opts.push({ label: '无匹配版本；可回车直接使用输入的版本号', disabled: true })
-  else if (matched.length > opts.length)
-    opts.push({ label: `已显示 ${opts.length} / ${matched.length}，滚动加载更多或输入关键词缩小范围`, disabled: true })
+  else if (matched.length >= 200)
+    opts.push({ label: `共 ${matched.length} 条匹配，建议输入关键词缩小范围`, disabled: true })
   return opts
 }
 onMounted(() => {
@@ -698,10 +693,10 @@ function isDefaultVersion(defaultVersion: string | null, v: string): boolean {
                   :loading="remoteLoading"
                   placeholder="选择或输入版本号（支持模糊搜索）"
                   class="w-[210px]"
+                  :reset-menu-on-options-change="false"
                   :disabled="!m.installVersion && !m.setDefault"
                   @update:show="onVersionDropdown"
                   @search="onVersionSearch"
-                  @scroll="onVersionScroll"
                 />
                 <NButton
                   v-if="m.installVersion"
