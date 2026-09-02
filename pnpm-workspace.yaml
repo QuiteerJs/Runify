@@ -1,0 +1,12 @@
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+# pnpm v10 配置：允许以下依赖执行 postinstall / build 脚本
+# pnpm v10 起不再读取 package.json 的 pnpm.onlyBuiltDependencies，需迁移到本文件
+# 参考 https://pnpm.io/zh/settings#onlybuiltdependencies
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - simple-git-hooks
+  - vue-demi
