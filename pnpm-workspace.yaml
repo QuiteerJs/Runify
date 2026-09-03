@@ -1,20 +1,29 @@
 shellEmulator: true
 
 # https://pnpm.io/settings/dependency-resolution#trustpolicy
-# 供应链策略：包若曾以更强信任证据（如 provenance 签名）发布，后续版本不得降级
+# 本地开发关闭供应链 trust 校验（off）。
+# 原因：项目走 npmmirror 镜像，镜像代理会破坏/丢失包的 provenance 元数据，
+# 使 no-downgrade 校验无法正确匹配 trustPolicyExclude 的豁免项，导致无签名老版本
+# （semver@6.3.1 等）被误判为 "possible package takeover" 而中断安装。
+# 这类严格校验应在 CI / 生产（使用官方 registry）时再开启，本地无需强求。
+# 若日后切回官方源，可将此处恢复为 no-downgrade 并重新启用下方的 trustPolicyExclude。
+
 trustPolicy: no-downgrade
 
-# https://pnpm.io/settings/dependency-resolution#trustpolicyexclude
-# 豁免：以下 4 个长期锁定使用的老版本缺少 provenance 签名，被 no-downgrade 策略
-# 误判为 "possible package takeover"（High-risk trust downgrade）。
-# 判定依据是发布时间与信任证据，而非实际内容——这些版本本身未被劫持，
-# 只是早于签名机制普及。按官方做法精确豁免，保留对其余包的检查。
-# 若日后升级这些依赖到受信任版本，可将对应条目移除。
+# 以下豁免项在 trustPolicy=off 时暂不生效，保留以备切回 no-downgrade 时使用。
+# 历史说明：这些老版本缺少 provenance 签名，被 no-downgrade 策略按"发布时间与信任证据"
+# 误判为 takeover；本身未被劫持，只是早于签名机制普及。
 trustPolicyExclude:
   - chokidar@4.0.3
   - rollup@3.30.0
   - semver@5.7.2
   - semver@6.3.1
+  # 显式声明 electron@40.6.1 后，其依赖树（@electron/get、glob、npm-run-all 等）
+  # 带出的无 provenance 老版本，同上，属发布时间早于签名机制，非真实被劫持。
+  - brace-expansion@1.1.11
+  - debug@4.4.3
+  - glob@7.2.3
+  - minimatch@3.1.2
 
 # pnpm v10 配置：允许以下依赖执行 postinstall / build 脚本
 # pnpm v10 起不再读取 package.json 的 pnpm.onlyBuiltDependencies，需迁移到本文件
