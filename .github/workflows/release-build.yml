@@ -75,31 +75,43 @@ jobs:
           cat .env.production
         shell: bash
 
+      - name: Neutralize electron mirror (.npmrc) for CI
+        # ⚠️ 不做这一步，macOS 的 dmg 打包必然 404。
+        #
+        # 链路：项目 .npmrc 有 electron_mirror=https://cdn.npmmirror.com/binaries/electron/，
+        # `pnpm run` 会把它导出成 npm_config_electron_mirror。
+        # 而 @electron/get 的 mirrorVar() 取 mirror 的优先级是
+        #   npm_config_electron_mirror → ELECTRON_MIRROR → 代码传入的 mirrorOptions.mirror
+        # ——环境变量优先级高于调用方显式传入的 mirror。
+        #
+        # electron-builder 下载 dmg 打包工具 dmgbuild-bundle-*.tar.gz 时复用的正是同一个
+        # downloadArtifact()，其 mirrorOptions.mirror 指向
+        #   .../electron-userland/electron-builder-binaries/releases/download/
+        # 被上述环境变量劫持后，URL 变成
+        #   https://cdn.npmmirror.com/binaries/electron/dmg-builder@1.2.0/dmgbuild-bundle-arm64-*.tar.gz
+        # → 404（已实测该 URL 返回 404）。
+        #
+        # electron 与 electron-builder-binaries 在 npmmirror 上分属两个目录
+        # （/binaries/electron/ 与 /binaries/electron-builder-binaries/），
+        # 而 mirrorVar 只认一个变量，无法同时满足；
+        # 且**置空也无效**——实测 pnpm 把空字符串当作未设置，仍会回落到 .npmrc 的值。
+        #
+        # 所以这里直接在 CI 里摘掉该行，让 electron 与 dmg-builder 都回落到官方
+        # GitHub Release（两个 URL 均已验证 200）。GitHub-hosted runner 直连 github.com，
+        # 比绕境外镜像更稳。本地开发不受影响，仍走 npmmirror。
+        run: |
+          grep -v '^electron_mirror=' .npmrc > .npmrc.ci
+          mv .npmrc.ci .npmrc
+          echo '--- .npmrc (CI, electron_mirror removed) ---'
+          cat .npmrc
+        shell: bash
+
       - name: Build installers
         run: pnpm run ${{ matrix.script }}
         env:
-          # ⚠️ 必须清空 electron 镜像环境变量，否则 macOS 的 dmg 打包会 404。
-          #
-          # @electron/get 的 mirrorVar() 取 mirror 的优先级是：
-          #   npm_config_electron_mirror  →  ELECTRON_MIRROR  →  代码传入的 mirrorOptions.mirror
-          # 也就是**环境变量优先级高于调用方显式传入的 mirror**。
-          # 而 electron-builder 下载 dmg 打包工具（dmgbuild-bundle-*.tar.gz）时，
-          # 复用的正是同一个 @electron/get downloadArtifact():
-          #   mirror = https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          #   dir    = dmg-builder@1.2.0
-          # 项目 .npmrc 有 electron_mirror=https://cdn.npmmirror.com/binaries/electron/，
-          # pnpm run 会把它导出成 npm_config_electron_mirror，于是 dmg 工具的 URL 变成
-          #   https://cdn.npmmirror.com/binaries/electron/dmg-builder@1.2.0/dmgbuild-bundle-arm64-*.tar.gz
-          # → 404，整个 build step 失败。
-          #
-          # 两者在 npmmirror 上的目录不同（/binaries/electron/ 与
-          # /binaries/electron-builder-binaries/），共用一个变量无法同时满足，
-          # 所以这里直接置空，让 electron 与 dmg-builder 都回落到官方 GitHub Release。
-          # 置空后 falsy，mirrorVar 会继续往下走到代码传入的 mirror（正确值）。
-          # GitHub-hosted runner 直连 github.com，比走境外镜像更稳。
-          npm_config_electron_mirror: ''
-          NPM_CONFIG_ELECTRON_MIRROR: ''
-          ELECTRON_MIRROR: ''
+          # 注意：不要在这里设 npm_config_electron_mirror / ELECTRON_MIRROR。
+          # 详见上一步的注释——镜像变量由 .npmrc 决定，且一个变量同时影响
+          # electron 与 dmg-builder 两个下载地址，无法两全。
           # ⚠️ 三道防线禁止 electron-builder 自动 publish（CI 里 404 必出）：
           # 1) CI: "false" → 让 ci-info 的 isCI 返回 false，绕开 electron-builder
           #    "Implicit publishing triggered by CI detection" 的自动 onTagOrDraft
