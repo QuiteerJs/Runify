@@ -61,6 +61,18 @@ jobs:
         if: ${{ runner.os == 'Linux' && matrix.apt-packages != '' }}
         run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt-packages }}
 
+      - name: Create .env.production (CI fallback)
+        # electronup 0.2.5 的 getModeDev() 在 build 时强制读 .env.production。
+        # 本地开发该文件存在但被 .gitignore 排除，CI 拿不到会直接报错退出。
+        # 这里写入与本地一致的默认值（仅环境标识，无敏感信息）；
+        # 真正需要覆盖的场景应通过 GH 仓库 secret 在上方 inject env。
+        run: |
+          if [ ! -f .env.production ]; then
+            echo 'VITE_MODE_TEXT=production' > .env.production
+          fi
+          echo "--- .env.production ---"
+          cat .env.production
+
       - name: Build installers
         run: pnpm run ${{ matrix.script }}
         env:
