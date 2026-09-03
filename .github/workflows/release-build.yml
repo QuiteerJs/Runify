@@ -80,11 +80,15 @@ jobs:
         env:
           # 用官方 registry，避免镜像破坏 provenance 导致依赖校验失败
           ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
-          # ⚠️ 不要在这里传 GH_TOKEN！electron-builder 看到 GH_TOKEN 会自动调 GitHub
-          # publisher 上传产物（owner/repo/version 三元组匹配），但组织策略可能让
-          # GITHUB_TOKEN 没有 contents:write 权限，上传返回 404 并把整个 build step
-          # 拉成失败。产物上传统一交给下方 softprops/action-gh-release 走 PAT。
-          # CSC_LINK / CSC_KEY_PASSWORD：ad-hoc 签名需要，缺则回退到无签名。
+          # ⚠️ 不要给 electron-builder 任何 GitHub token（包括 GITHUB_TOKEN，
+          # 因为 GitHub Actions 会默认把 GITHUB_TOKEN 注入到每个 step 的 env）。
+          # 一旦它检测到任何 GH* / GITHUB* token，就会自动走 GitHub publisher
+          # 上传产物（owner/repo/version 三元组匹配），撞组织 PR 写权限
+          # 禁用返回 HTTPError 404 并把整个 build step 拉成失败。
+          # 产物上传统一交给下方 softprops/action-gh-release 走 PAT。
+          GITHUB_TOKEN: ''
+          GH_TOKEN: ''
+          GH_RELEASE_CREATE: 'false'
 
       - name: Upload installers to release
         if: ${{ inputs.tag_name != '' }}
