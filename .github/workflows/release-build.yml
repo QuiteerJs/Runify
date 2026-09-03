@@ -1,0 +1,77 @@
+name: Release Build
+
+# 可复用 workflow：在指定 tag 上做三平台矩阵打包，并把安装包上传到对应 Release。
+# 由 release-please.yml 在「真正创建了 Release」时调用（tag_name 由调用方传入）。
+# 也可通过 workflow_dispatch 手动触发（需提供 tag_name）。
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag to build from (e.g. v0.0.1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: build:mac
+            artifacts: |
+              dist/out/*.dmg
+              dist/out/*-mac.zip
+          - os: windows-latest
+            script: build:win
+            artifacts: |
+              dist/out/*.exe
+          - os: ubuntu-latest
+            script: build:linux
+            artifacts: |
+              dist/out/*.AppImage
+              dist/out/*.deb
+            apt-packages: libfuse2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install system packages (Linux AppImage)
+        if: ${{ runner.os == 'Linux' && matrix.apt-packages != '' }}
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt-packages }}
+
+      - name: Build installers
+        run: pnpm run ${{ matrix.script }}
+        env:
+          # 用官方 registry，避免镜像破坏 provenance 导致依赖校验失败
+          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installers to release
+        if: ${{ inputs.tag_name != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: ${{ matrix.artifacts }}
+          fail_on_unmatched_files: false

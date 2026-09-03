@@ -19,6 +19,9 @@ export default defineConfig(async () => {
           {
             target: 'dmg',
           },
+          {
+            target: 'zip',
+          },
         ],
       },
       dmg: {
@@ -33,9 +36,25 @@ export default defineConfig(async () => {
       },
       win: {
         icon: 'resources/icon.ico',
+        target: [
+          {
+            target: 'nsis',
+            arch: ['x64'],
+          },
+        ],
       },
       linux: {
         icon: 'resources/icon.png',
+        target: [
+          {
+            target: 'AppImage',
+            arch: ['x64'],
+          },
+          {
+            target: 'deb',
+            arch: ['x64'],
+          },
+        ],
       },
       // 只打包渲染产物 + 运行时真正需要的 node_modules（preload 包通过 createRequire 运行时加载，无法被打进主进程 bundle）
       files: [
