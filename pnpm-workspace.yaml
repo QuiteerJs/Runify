@@ -25,10 +25,20 @@ onlyBuiltDependencies:
   - simple-git-hooks
   - vue-demi
 
+# https://pnpm.io/settings#onlybuiltdependencies
+# pnpm 逐包记录「是否允许执行构建脚本」的决定，与上面的 onlyBuiltDependencies 保持一致。
+# 注意：这一段的取值必须是明确的 true / false。若留成 pnpm 自动生成的占位符
+# "set this to true or false"，pnpm 每次 install 都会判定配置未决而重写本文件，
+# 使 pnpm-workspace.yaml 的 mtime 晚于 node_modules/.modules.yaml，
+# 于是下次 `pnpm run` 的依赖检查又认为 node_modules 过期，
+# 反复弹出 "modules directory will be removed and reinstalled from scratch"。
 allowBuilds:
-  electron: set this to true or false
-  electron-winstaller: set this to true or false
-  esbuild: set this to true or false
-  node: set this to true or false
-  simple-git-hooks: set this to true or false
-  vue-demi: set this to true or false
+  # 必须构建：postinstall 负责下载/解压各平台预编译二进制
+  electron: true
+  # 当前依赖树未安装（Windows 打包 / 独立 node 运行时相关），保持关闭
+  electron-winstaller: false
+  esbuild: true
+  node: false
+  # git hooks 与 vue 版本切换的 postinstall
+  simple-git-hooks: true
+  vue-demi: true
