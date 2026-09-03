@@ -66,19 +66,25 @@ jobs:
         # 本地开发该文件存在但被 .gitignore 排除，CI 拿不到会直接报错退出。
         # 这里写入与本地一致的默认值（仅环境标识，无敏感信息）；
         # 真正需要覆盖的场景应通过 GH 仓库 secret 在上方 inject env。
+        # 用 shell: bash 全平台统一（Windows runner 通过 Git Bash 跑）。
         run: |
           if [ ! -f .env.production ]; then
             echo 'VITE_MODE_TEXT=production' > .env.production
           fi
           echo "--- .env.production ---"
           cat .env.production
+        shell: bash
 
       - name: Build installers
         run: pnpm run ${{ matrix.script }}
         env:
           # 用官方 registry，避免镜像破坏 provenance 导致依赖校验失败
           ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ⚠️ 不要在这里传 GH_TOKEN！electron-builder 看到 GH_TOKEN 会自动调 GitHub
+          # publisher 上传产物（owner/repo/version 三元组匹配），但组织策略可能让
+          # GITHUB_TOKEN 没有 contents:write 权限，上传返回 404 并把整个 build step
+          # 拉成失败。产物上传统一交给下方 softprops/action-gh-release 走 PAT。
+          # CSC_LINK / CSC_KEY_PASSWORD：ad-hoc 签名需要，缺则回退到无签名。
 
       - name: Upload installers to release
         if: ${{ inputs.tag_name != '' }}
