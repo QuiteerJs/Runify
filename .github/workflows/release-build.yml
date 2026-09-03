@@ -75,3 +75,7 @@ jobs:
           tag_name: ${{ inputs.tag_name }}
           files: ${{ matrix.artifacts }}
           fail_on_unmatched_files: false
+        env:
+          # 与 release-please 一致：优先用 PAT，回退 GITHUB_TOKEN。
+          # 组织若关闭了 workflow 写权限，GITHUB_TOKEN 可能不足以上传产物。
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
