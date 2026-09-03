@@ -43,6 +43,12 @@ export default defineConfig(async () => {
         'node_modules/@quiteer/electron-preload/**/*',
         'package.json',
         'resources/**/*',
+        // asar 关闭时文件全部平铺，codesign 会遍历签名每一个文件。
+        // 部分依赖（如 @css-render/vue3-ssr）误将测试覆盖率报告 coverage/lcov-report/
+        // 发布到 npm，其中的 favicon.png 等非 Mach-O 文件会让 codesign 报
+        // "cannot read entitlement data" 而中断打包。
+        '!**/coverage/**',
+        '!**/*.map',
       ],
       extraResources: [{ from: 'resources', to: 'resources' }],
     },

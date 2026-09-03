@@ -1,6 +1,20 @@
 shellEmulator: true
 
+# https://pnpm.io/settings/dependency-resolution#trustpolicy
+# 供应链策略：包若曾以更强信任证据（如 provenance 签名）发布，后续版本不得降级
 trustPolicy: no-downgrade
+
+# https://pnpm.io/settings/dependency-resolution#trustpolicyexclude
+# 豁免：以下 4 个长期锁定使用的老版本缺少 provenance 签名，被 no-downgrade 策略
+# 误判为 "possible package takeover"（High-risk trust downgrade）。
+# 判定依据是发布时间与信任证据，而非实际内容——这些版本本身未被劫持，
+# 只是早于签名机制普及。按官方做法精确豁免，保留对其余包的检查。
+# 若日后升级这些依赖到受信任版本，可将对应条目移除。
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - rollup@3.30.0
+  - semver@5.7.2
+  - semver@6.3.1
 
 # pnpm v10 配置：允许以下依赖执行 postinstall / build 脚本
 # pnpm v10 起不再读取 package.json 的 pnpm.onlyBuiltDependencies，需迁移到本文件
@@ -10,3 +24,11 @@ onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
   - vue-demi
+
+allowBuilds:
+  electron: set this to true or false
+  electron-winstaller: set this to true or false
+  esbuild: set this to true or false
+  node: set this to true or false
+  simple-git-hooks: set this to true or false
+  vue-demi: set this to true or false

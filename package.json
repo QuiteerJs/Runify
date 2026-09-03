@@ -51,14 +51,6 @@
     "typescript": "~5.9.3",
     "unocss": "^66.8.1"
   },
-  "pnpm": {
-    "overrides": {},
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "simple-git-hooks"
-    ]
-  },
   "simple-git-hooks": {
     "commit-msg": "pnpm qui gv",
     "pre-commit": "pnpm lint-staged"
