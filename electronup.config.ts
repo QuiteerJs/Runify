@@ -12,6 +12,11 @@ export default defineConfig(async () => {
     },
     builderConfig: {
       asar: false,
+      // 显式禁用 electron-builder 的自动 publish。CI 中产物上传统一交给
+      // softprops/action-gh-release 走 PAT (RELEASE_PLEASE_TOKEN)；
+      // 不禁用的话 electron-builder 看到 GITHUB_TOKEN 就会自动调 GitHub publisher
+      // 上传，撞组织 PR 写权限禁用返回 HTTPError 404 并把 build step 拉成失败。
+      publish: null,
       icon: 'resources/icon.png',
       mac: {
         icon: 'resources/icon.icns',
