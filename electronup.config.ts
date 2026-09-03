@@ -17,6 +17,7 @@ export default defineConfig(async () => {
       // 不禁用的话 electron-builder 看到 GITHUB_TOKEN 就会自动调 GitHub publisher
       // 上传，撞组织 PR 写权限禁用返回 HTTPError 404 并把 build step 拉成失败。
       publish: null,
+      // 顶层 icon 是默认 fallback，平台特定 icon 在 mac/win/linux 块里覆盖
       icon: 'resources/icon.png',
       mac: {
         icon: 'resources/icon.icns',

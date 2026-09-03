@@ -5,7 +5,10 @@
   "private": true,
   "packageManager": "pnpm@10.32.1",
   "description": "本地前端工程统一运行器：导入即识别类型与脚本，一键运行、编排与查看日志",
-  "author": "Quiteer",
+  "author": {
+    "name": "Quiteer",
+    "email": "p602985@yeah.net"
+  },
   "main": "dist/resource/electron.mjs",
   "scripts": {
     "dev": "electronup",
