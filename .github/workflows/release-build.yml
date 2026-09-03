@@ -80,12 +80,15 @@ jobs:
         env:
           # 用官方 registry，避免镜像破坏 provenance 导致依赖校验失败
           ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
-          # ⚠️ 不要给 electron-builder 任何 GitHub token（包括 GITHUB_TOKEN，
-          # 因为 GitHub Actions 会默认把 GITHUB_TOKEN 注入到每个 step 的 env）。
-          # 一旦它检测到任何 GH* / GITHUB* token，就会自动走 GitHub publisher
-          # 上传产物（owner/repo/version 三元组匹配），撞组织 PR 写权限
-          # 禁用返回 HTTPError 404 并把整个 build step 拉成失败。
+          # ⚠️ 三道防线禁止 electron-builder 自动 publish（CI 里 404 必出）：
+          # 1) CI: "false" → 让 ci-info 的 isCI 返回 false，绕开 electron-builder
+          #    "Implicit publishing triggered by CI detection" 的自动 onTagOrDraft
+          #    分支（这是 26.x 的硬编码行为，会覆盖 publish: null）。
+          # 2) GITHUB_TOKEN / GH_TOKEN 置空 → 避免任何 GitHub publisher 尝试
+          #    上传产物。
+          # 3) GH_RELEASE_CREATE: "false" → 额外保险。
           # 产物上传统一交给下方 softprops/action-gh-release 走 PAT。
+          CI: 'false'
           GITHUB_TOKEN: ''
           GH_TOKEN: ''
           GH_RELEASE_CREATE: 'false'
