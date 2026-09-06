@@ -58,6 +58,10 @@ export default defineConfig({
     // 卡片运行/备注动态 class（ProjectCard.vue 模板里有 :class 三元但模板里能直接看到，先 safelist 兜底）
     'i-carbon-circle-filled',
     'i-carbon-text-footnote',
+    // 控制台面板工具栏：动作按钮的图标经 :class="a.icon" 动态绑定（ACTIONS 数组），静态扫描看不到。
+    // i-carbon-copy 在上方「账户大菜单图标」里已登记，这里不重复。
+    'i-carbon-document-export',
+    'i-carbon-trash-can',
     // 环境管理页：卡片图标经 :class 动态绑定（ManagerMeta.icon / PmMeta.icon / RUNTIME_ICONS），静态扫描看不到
     'i-tabler-brand-vite',
     'i-tabler-stack-2',

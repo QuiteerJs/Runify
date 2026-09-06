@@ -130,6 +130,18 @@ export const useProjects = defineStore('projects', () => {
     }
   }
 
+  /**
+   * 清空某个运行实例的日志（仅清渲染层的滑动窗口，不落盘、不影响进程）。
+   * 运行中的实例清空后新输出仍会继续追加 —— 这里清的是「已看到的历史」。
+   */
+  function clearLogs(runId: string): void {
+    if (!runId)
+      return
+    logs.value[runId] = []
+    if (runs.value[runId])
+      runs.value[runId].logs = []
+  }
+
   async function run(req: RunRequest): Promise<RunInfo> {
     const info = await api.run(req)
     registerRun(info)
@@ -188,6 +200,7 @@ export const useProjects = defineStore('projects', () => {
     latestRunId,
     handleEvent,
     registerRun,
+    clearLogs,
     run,
     stop,
     importProject,

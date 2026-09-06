@@ -210,7 +210,24 @@ export function registerHandlers(): void {
   })
 
   ipcMain.handle(IPC.openUrl, async (_e, payload: { url: string }) => {
-    await shell.openExternal(payload.url)
+    // 该入口会被控制台日志里的「可点击链接」调用，而日志文本来自被运行脚本的任意输出，
+    // 属不可信输入：不加白名单的话，一行 `file:///...` 或 `smb://...` 就会被原样交给
+    // shell.openExternal 直接打开。这里只放行 http/https。
+    const raw = payload?.url
+    if (typeof raw !== 'string' || raw.length === 0 || raw.length > 2048)
+      return false
+    let parsed: URL
+    try {
+      parsed = new URL(raw)
+    }
+    catch {
+      return false
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      console.warn('[runify] 拒绝打开非 http(s) 链接:', raw)
+      return false
+    }
+    await shell.openExternal(parsed.href)
     return true
   })
 
