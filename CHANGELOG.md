@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/QuiteerJs/Runify/compare/runify-v0.1.0...runify-v0.2.0) (2026-09-06)
+
+
+### Features
+
+* **console:** 控制台工具栏重排与日志可用性优化 ([2343c61](https://github.com/QuiteerJs/Runify/commit/2343c61f8c0c84e45e613467c63bbbe87e8c1e3f))
+* **icon:** 全新品牌图标（桌面 squircle + 纯闪电托盘） ([0972faa](https://github.com/QuiteerJs/Runify/commit/0972faa79ba1303d827cb36756b4d56c00b6221e))
+
 ## [0.1.0](https://github.com/QuiteerJs/Runify/compare/runify-v0.0.1...runify-v0.1.0) (2026-09-03)
 
 
