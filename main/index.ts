@@ -199,6 +199,9 @@ app.whenReady().then(async () => {
       idle: resourceFile('tray.png'),
       syncing: resourceFile('tray-syncing.png'),
     },
+    // 纯闪电无背景：待机绿色、同步中黑色。带颜色的图标无法用
+    // Template Image（只保留 alpha 通道会丢色），显式关闭。
+    templateIcon: false,
     tooltip: 'Runify',
     contextMenu: [
       { label: '显示主窗口', click: () => windows.focus('main') },
